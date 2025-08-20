@@ -18,4 +18,4 @@ test:
 build:
 	go build ./...
 
-all: fmt vet lint sec test build
+check: fmt vet lint sec test build
