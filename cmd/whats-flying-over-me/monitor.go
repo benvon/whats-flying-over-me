@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/example/whats-flying-over-me/internal/config"
+	"github.com/example/whats-flying-over-me/internal/logger"
 	"github.com/example/whats-flying-over-me/internal/notifier"
 	"github.com/example/whats-flying-over-me/internal/piaware"
 )
@@ -55,10 +56,20 @@ func (m *MonitorService) check() error {
 
 	if len(nearby) == 0 {
 		// Log that no aircraft are in range
+		logger.Info("no aircraft in range", map[string]interface{}{
+			"total_aircraft": len(aircraft),
+			"radius_km":      m.cfg.RadiusKm,
+			"altitude_max":   m.cfg.AltitudeMax,
+		})
 		return nil
 	}
 
 	alertCount := 0
+	logger.Info("aircraft detected in range", map[string]interface{}{
+		"aircraft_count": len(nearby),
+		"total_seen":     len(aircraft),
+	})
+
 	for _, a := range nearby {
 		// Check if we should send an alert for this aircraft
 		if !m.deduplicator.ShouldAlert(a) {
@@ -77,10 +88,30 @@ func (m *MonitorService) check() error {
 		// Send notification
 		if err := m.notifier.Notify(alert); err != nil {
 			// Log notification failure but continue with other aircraft
+			logger.Err("failed to send notification", map[string]interface{}{
+				"aircraft_hex": a.Hex,
+				"error":        err.Error(),
+			})
 			continue
 		}
 
+		logger.Info("aircraft alert sent", map[string]interface{}{
+			"aircraft_hex": a.Hex,
+			"flight":       a.Flight,
+			"distance_km":  a.DistanceKm,
+			"altitude_ft":  a.AltBaro,
+			"lat":          a.Lat,
+			"lon":          a.Lon,
+		})
+
 		alertCount++
+	}
+
+	if alertCount > 0 {
+		logger.Info("monitoring cycle completed", map[string]interface{}{
+			"alerts_sent":       alertCount,
+			"aircraft_in_range": len(nearby),
+		})
 	}
 
 	return nil

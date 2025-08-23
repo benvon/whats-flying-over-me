@@ -1,4 +1,4 @@
-.PHONY: fmt vet lint sec test build all
+.PHONY: fmt vet lint sec test build clean all
 
 fmt:
 	go fmt ./...
@@ -16,6 +16,9 @@ test:
 	go test ./...
 
 build:
-	go build ./...
+	go build -o whats-flying-over-me ./cmd/whats-flying-over-me
+
+clean:
+	rm -f whats-flying-over-me
 
 check: fmt vet lint sec test build

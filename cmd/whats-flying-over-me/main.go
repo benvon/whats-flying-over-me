@@ -36,7 +36,7 @@ func main() {
 	defer heartbeatTicker.Stop()
 
 	// Log startup configuration
-	logger.Warn("starting aircraft monitoring", map[string]interface{}{
+	logger.Info("starting aircraft monitoring", map[string]interface{}{
 		"scrape_interval":  cfg.ScrapeInterval.String(),
 		"radius_km":        cfg.RadiusKm,
 		"altitude_max":     cfg.AltitudeMax,
@@ -70,11 +70,11 @@ func main() {
 func logHeartbeat(stats *notifier.Stats) {
 	statsData := stats.GetStats()
 
-	logger.Warn("heartbeat", map[string]interface{}{
+	logger.Info("heartbeat", map[string]interface{}{
 		"uptime":          statsData["uptime"],
 		"scrape_count":    statsData["scrape_count"],
 		"scrape_failures": statsData["scrape_failures"],
 		"success_rate":    fmt.Sprintf("%.1f%%", statsData["success_rate"]),
-		"unique_aircraft": statsData["unique_aircraft"],
+		"unique_aircraft": statsData["uniqueCount"],
 	})
 }
