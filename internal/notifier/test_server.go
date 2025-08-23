@@ -50,8 +50,9 @@ func (ts *TestServer) Start() error {
 	})
 
 	ts.server = &http.Server{
-		Addr:    fmt.Sprintf(":%d", ts.port),
-		Handler: mux,
+		Addr:              fmt.Sprintf(":%d", ts.port),
+		Handler:           mux,
+		ReadHeaderTimeout: 10 * time.Second, // Prevent Slowloris attacks
 	}
 
 	go func() {

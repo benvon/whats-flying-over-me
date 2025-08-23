@@ -46,7 +46,9 @@ func TestLoggerLevels(t *testing.T) {
 	}
 
 	// Close the write end and read the output
-	w.Close()
+	if err := w.Close(); err != nil {
+		t.Fatalf("failed to close write pipe: %v", err)
+	}
 	var buf bytes.Buffer
 	_, err := buf.ReadFrom(r)
 	if err != nil {
@@ -97,7 +99,9 @@ func TestLoggerWithoutFields(t *testing.T) {
 	Info("simple message", nil)
 
 	// Close the write end and read the output
-	w.Close()
+	if err := w.Close(); err != nil {
+		t.Fatalf("failed to close write pipe: %v", err)
+	}
 	var buf bytes.Buffer
 	_, err := buf.ReadFrom(r)
 	if err != nil {

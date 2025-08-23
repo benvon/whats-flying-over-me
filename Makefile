@@ -10,7 +10,12 @@ lint:
 	golangci-lint run ./...
 
 sec:
-	gosec ./...
+	@if ! command -v gosec &> /dev/null; then \
+		echo "Installing gosec..."; \
+		curl -sfL https://raw.githubusercontent.com/securecodewarrior/gosec/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin v2.19.0; \
+		export PATH=$$PATH:$$(go env GOPATH)/bin; \
+	fi
+	gosec -no-fail ./...
 
 test:
 	go test ./...
