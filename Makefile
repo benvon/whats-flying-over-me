@@ -12,10 +12,14 @@ lint:
 sec:
 	@if ! command -v gosec &> /dev/null; then \
 		echo "Installing gosec..."; \
-		curl -sfL https://raw.githubusercontent.com/securecodewarrior/gosec/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin v2.19.0; \
-		export PATH=$$PATH:$$(go env GOPATH)/bin; \
+		curl -sfL https://raw.githubusercontent.com/securecodewarrior/gosec/master/install.sh | sh -s -- -b . v2.19.0; \
+		export PATH=$$PATH:$$(pwd); \
 	fi
-	gosec -no-fail ./...
+	@if [ -f ./gosec ]; then \
+		./gosec -no-fail ./...; \
+	else \
+		gosec -no-fail ./...; \
+	fi
 
 test:
 	go test ./...
@@ -25,5 +29,6 @@ build:
 
 clean:
 	rm -f whats-flying-over-me
+	rm -f gosec
 
 check: fmt vet lint sec test build
