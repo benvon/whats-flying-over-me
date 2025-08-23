@@ -17,22 +17,36 @@ type Config struct {
 	BaseLon        float64
 	DataURL        string
 	Notifier       NotifierConfig
+	AlertDedupe    AlertDedupeConfig
 }
 
 // NotifierConfig holds notifier settings.
 type NotifierConfig struct {
-	Method string
-	Email  EmailConfig
+	Webhook  WebhookConfig
+	RabbitMQ RabbitMQConfig
+	Console  bool
 }
 
-// EmailConfig holds email notifier settings.
-type EmailConfig struct {
-	SMTPServer string
-	SMTPPort   int
-	Username   string
-	Password   string
-	From       string
-	To         string
+// WebhookConfig holds webhook notifier settings.
+type WebhookConfig struct {
+	Enabled bool
+	URL     string
+	Timeout time.Duration
+}
+
+// RabbitMQConfig holds RabbitMQ notifier settings.
+type RabbitMQConfig struct {
+	Enabled    bool
+	URL        string
+	Exchange   string
+	RoutingKey string
+	Timeout    time.Duration
+}
+
+// AlertDedupeConfig holds alert deduplication settings.
+type AlertDedupeConfig struct {
+	Enabled     bool
+	BlockoutMin time.Duration
 }
 
 const (
@@ -43,13 +57,22 @@ const (
 	envBaseLat    = "WFO_BASE_LAT"
 	envBaseLon    = "WFO_BASE_LON"
 	envDataURL    = "WFO_DATA_URL"
-	envNotify     = "WFO_NOTIFY"
-	envSMTPServer = "WFO_SMTP_SERVER"
-	envSMTPPort   = "WFO_SMTP_PORT"
-	envSMTPUser   = "WFO_SMTP_USER"
-	envSMTPPass   = "WFO_SMTP_PASS" // #nosec G101
-	envEmailFrom  = "WFO_EMAIL_FROM"
-	envEmailTo    = "WFO_EMAIL_TO"
+
+	// Webhook settings
+	envWebhookEnabled = "WFO_WEBHOOK_ENABLED"
+	envWebhookURL     = "WFO_WEBHOOK_URL"
+	envWebhookTimeout = "WFO_WEBHOOK_TIMEOUT"
+
+	// RabbitMQ settings
+	envRabbitMQEnabled    = "WFO_RABBITMQ_ENABLED"
+	envRabbitMQURL        = "WFO_RABBITMQ_URL"
+	envRabbitMQExchange   = "WFO_RABBITMQ_EXCHANGE"
+	envRabbitMQRoutingKey = "WFO_RABBITMQ_ROUTING_KEY"
+	envRabbitMQTimeout    = "WFO_RABBITMQ_TIMEOUT"
+
+	// Alert deduplication settings
+	envAlertDedupeEnabled = "WFO_ALERT_DEDUPE_ENABLED"
+	envAlertBlockoutMin   = "WFO_ALERT_BLOCKOUT_MIN"
 )
 
 // Load reads configuration from config file, environment variables and command line flags
@@ -62,8 +85,11 @@ func Load() Config {
 		AltitudeMax:    10000,
 		DataURL:        "http://localhost:8080/data/aircraft.json",
 		Notifier: NotifierConfig{
-			Method: "email",
-			Email:  EmailConfig{SMTPPort: 587},
+			Console: true, // Default to console logging only
+		},
+		AlertDedupe: AlertDedupeConfig{
+			Enabled:     true,
+			BlockoutMin: 15 * time.Minute,
 		},
 	}
 
@@ -76,14 +102,22 @@ func Load() Config {
 	lat := flag.Float64("lat", 0, "base latitude")
 	lon := flag.Float64("lon", 0, "base longitude")
 	dataURL := flag.String("url", "", "piaware data URL")
-	notify := flag.String("notify", "", "notification method")
 
-	smtpServer := flag.String("smtp-server", "", "SMTP server")
-	smtpPort := flag.Int("smtp-port", 0, "SMTP port")
-	smtpUser := flag.String("smtp-user", "", "SMTP username")
-	smtpPass := flag.String("smtp-pass", "", "SMTP password")
-	emailFrom := flag.String("email-from", "", "email sender")
-	emailTo := flag.String("email-to", "", "email recipient")
+	// Webhook flags
+	webhookEnabled := flag.Bool("webhook-enabled", false, "enable webhook notifications")
+	webhookURL := flag.String("webhook-url", "", "webhook URL")
+	webhookTimeout := flag.Duration("webhook-timeout", 0, "webhook timeout")
+
+	// RabbitMQ flags
+	rabbitMQEnabled := flag.Bool("rabbitmq-enabled", false, "enable RabbitMQ notifications")
+	rabbitMQURL := flag.String("rabbitmq-url", "", "RabbitMQ URL")
+	rabbitMQExchange := flag.String("rabbitmq-exchange", "", "RabbitMQ exchange")
+	rabbitMQRoutingKey := flag.String("rabbitmq-routing-key", "", "RabbitMQ routing key")
+	rabbitMQTimeout := flag.Duration("rabbitmq-timeout", 0, "RabbitMQ timeout")
+
+	// Alert deduplication flags
+	alertDedupeEnabled := flag.Bool("alert-dedupe-enabled", true, "enable alert deduplication")
+	alertBlockoutMin := flag.Duration("alert-blockout-min", 0, "alert blockout period")
 
 	flag.Parse()
 
@@ -129,28 +163,53 @@ func Load() Config {
 	if v, ok := os.LookupEnv(envDataURL); ok {
 		cfg.DataURL = v
 	}
-	if v, ok := os.LookupEnv(envNotify); ok {
-		cfg.Notifier.Method = v
-	}
-	if v, ok := os.LookupEnv(envSMTPServer); ok {
-		cfg.Notifier.Email.SMTPServer = v
-	}
-	if v, ok := os.LookupEnv(envSMTPPort); ok {
-		if i, err := strconv.Atoi(v); err == nil {
-			cfg.Notifier.Email.SMTPPort = i
+
+	// Webhook environment variables
+	if v, ok := os.LookupEnv(envWebhookEnabled); ok {
+		if b, err := strconv.ParseBool(v); err == nil {
+			cfg.Notifier.Webhook.Enabled = b
 		}
 	}
-	if v, ok := os.LookupEnv(envSMTPUser); ok {
-		cfg.Notifier.Email.Username = v
+	if v, ok := os.LookupEnv(envWebhookURL); ok {
+		cfg.Notifier.Webhook.URL = v
 	}
-	if v, ok := os.LookupEnv(envSMTPPass); ok {
-		cfg.Notifier.Email.Password = v
+	if v, ok := os.LookupEnv(envWebhookTimeout); ok {
+		if d, err := time.ParseDuration(v); err == nil {
+			cfg.Notifier.Webhook.Timeout = d
+		}
 	}
-	if v, ok := os.LookupEnv(envEmailFrom); ok {
-		cfg.Notifier.Email.From = v
+
+	// RabbitMQ environment variables
+	if v, ok := os.LookupEnv(envRabbitMQEnabled); ok {
+		if b, err := strconv.ParseBool(v); err == nil {
+			cfg.Notifier.RabbitMQ.Enabled = b
+		}
 	}
-	if v, ok := os.LookupEnv(envEmailTo); ok {
-		cfg.Notifier.Email.To = v
+	if v, ok := os.LookupEnv(envRabbitMQURL); ok {
+		cfg.Notifier.RabbitMQ.URL = v
+	}
+	if v, ok := os.LookupEnv(envRabbitMQExchange); ok {
+		cfg.Notifier.RabbitMQ.Exchange = v
+	}
+	if v, ok := os.LookupEnv(envRabbitMQRoutingKey); ok {
+		cfg.Notifier.RabbitMQ.RoutingKey = v
+	}
+	if v, ok := os.LookupEnv(envRabbitMQTimeout); ok {
+		if d, err := time.ParseDuration(v); err == nil {
+			cfg.Notifier.RabbitMQ.Timeout = d
+		}
+	}
+
+	// Alert deduplication environment variables
+	if v, ok := os.LookupEnv(envAlertDedupeEnabled); ok {
+		if b, err := strconv.ParseBool(v); err == nil {
+			cfg.AlertDedupe.Enabled = b
+		}
+	}
+	if v, ok := os.LookupEnv(envAlertBlockoutMin); ok {
+		if d, err := time.ParseDuration(v); err == nil {
+			cfg.AlertDedupe.BlockoutMin = d
+		}
 	}
 
 	// Command line overrides
@@ -172,26 +231,41 @@ func Load() Config {
 	if setFlags["url"] {
 		cfg.DataURL = *dataURL
 	}
-	if setFlags["notify"] {
-		cfg.Notifier.Method = *notify
+
+	// Webhook command line overrides
+	if setFlags["webhook-enabled"] {
+		cfg.Notifier.Webhook.Enabled = *webhookEnabled
 	}
-	if setFlags["smtp-server"] {
-		cfg.Notifier.Email.SMTPServer = *smtpServer
+	if setFlags["webhook-url"] {
+		cfg.Notifier.Webhook.URL = *webhookURL
 	}
-	if setFlags["smtp-port"] {
-		cfg.Notifier.Email.SMTPPort = *smtpPort
+	if setFlags["webhook-timeout"] {
+		cfg.Notifier.Webhook.Timeout = *webhookTimeout
 	}
-	if setFlags["smtp-user"] {
-		cfg.Notifier.Email.Username = *smtpUser
+
+	// RabbitMQ command line overrides
+	if setFlags["rabbitmq-enabled"] {
+		cfg.Notifier.RabbitMQ.Enabled = *rabbitMQEnabled
 	}
-	if setFlags["smtp-pass"] {
-		cfg.Notifier.Email.Password = *smtpPass
+	if setFlags["rabbitmq-url"] {
+		cfg.Notifier.RabbitMQ.URL = *rabbitMQURL
 	}
-	if setFlags["email-from"] {
-		cfg.Notifier.Email.From = *emailFrom
+	if setFlags["rabbitmq-exchange"] {
+		cfg.Notifier.RabbitMQ.Exchange = *rabbitMQExchange
 	}
-	if setFlags["email-to"] {
-		cfg.Notifier.Email.To = *emailTo
+	if setFlags["rabbitmq-routing-key"] {
+		cfg.Notifier.RabbitMQ.RoutingKey = *rabbitMQRoutingKey
+	}
+	if setFlags["rabbitmq-timeout"] {
+		cfg.Notifier.RabbitMQ.Timeout = *rabbitMQTimeout
+	}
+
+	// Alert deduplication command line overrides
+	if setFlags["alert-dedupe-enabled"] {
+		cfg.AlertDedupe.Enabled = *alertDedupeEnabled
+	}
+	if setFlags["alert-blockout-min"] {
+		cfg.AlertDedupe.BlockoutMin = *alertBlockoutMin
 	}
 
 	return cfg

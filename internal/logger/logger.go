@@ -10,6 +10,8 @@ import (
 type Level string
 
 const (
+	LevelDebug    Level = "DEBUG"
+	LevelInfo     Level = "INFO"
 	LevelWarn     Level = "WARN"
 	LevelErr      Level = "ERR"
 	LevelCritical Level = "CRITICAL"
@@ -36,6 +38,14 @@ func log(level Level, msg string, fields map[string]interface{}) {
 			_ = err2
 		}
 	}
+}
+
+func Debug(msg string, fields map[string]interface{}) {
+	log(LevelDebug, msg, fields)
+}
+
+func Info(msg string, fields map[string]interface{}) {
+	log(LevelInfo, msg, fields)
 }
 
 func Warn(msg string, fields map[string]interface{}) {

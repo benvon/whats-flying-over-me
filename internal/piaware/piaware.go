@@ -20,7 +20,7 @@ type Aircraft struct {
 
 // Data represents the piaware aircraft JSON response.
 type Data struct {
-	Now      int64      `json:"now"`
+	Now      float64    `json:"now"`
 	Aircraft []Aircraft `json:"aircraft"`
 }
 
