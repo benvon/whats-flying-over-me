@@ -1,0 +1,41 @@
+{
+    "go.useLanguageServer": true,
+    "go.lintTool": "golangci-lint",
+    "go.lintFlags": ["--fast"],
+    "go.formatTool": "goimports",
+    "go.testFlags": ["-v", "-race"],
+    "go.coverOnSave": true,
+    "go.coverOnTestPackage": true,
+    "go.coverOnSingleTest": true,
+    "go.testOnSave": false,
+    "go.buildOnSave": "off",
+    "go.vetOnSave": "package",
+    "go.lintOnSave": "package",
+    "go.toolsManagement.autoUpdate": true,
+    "go.gopath": "",
+    "go.goroot": "",
+    "go.gocodeAutoBuild": false,
+    "go.delveConfig": {
+        "dlvLoadConfig": {
+            "followPointers": true,
+            "maxVariableRecurse": 1,
+            "maxStringLen": 2048,
+            "maxArrayValues": 64,
+            "maxStructFields": -1
+        }
+    },
+    "go.testTimeout": "30s",
+    "go.lintOnSave": "package",
+    "go.vetOnSave": "package",
+    "go.buildOnSave": "off",
+    "go.testOnSave": false,
+    "go.coverOnSave": true,
+    "go.coverOnTestPackage": true,
+    "go.coverOnSingleTest": true,
+    "go.coverOnSave": true,
+    "go.coverOnTestPackage": true,
+    "go.coverOnSingleTest": true,
+    "cSpell.words": [
+        "deduplicator"
+    ]
+}

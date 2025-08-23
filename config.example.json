@@ -1,0 +1,27 @@
+{
+  "scrape_interval": "1m",
+  "radius_km": 25.0,
+  "altitude_max": 10000,
+  "base_lat": 40.7128,
+  "base_lon": -74.0060,
+  "data_url": "http://localhost:8080/data/aircraft.json",
+  "notifier": {
+    "console": true,
+    "webhook": {
+      "enabled": false,
+      "url": "https://your-webhook-endpoint.com/aircraft-alerts",
+      "timeout": "10s"
+    },
+    "rabbitmq": {
+      "enabled": false,
+      "url": "amqp://user:password@localhost:5672/",
+      "exchange": "aircraft_alerts",
+      "routing_key": "aircraft.nearby",
+      "timeout": "10s"
+    }
+  },
+  "alert_dedupe": {
+    "enabled": true,
+    "blockout_min": "15m"
+  }
+}
