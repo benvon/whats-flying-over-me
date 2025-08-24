@@ -14,32 +14,23 @@ builds:
     goarch:
       - amd64
       - arm64
-
-archives:
-  - builds:
-      - wfo
-    format: tar.gz
-    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
 
 checksum:
   name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
 
+# Docker builds - only when GITHUB_REPOSITORY is available
 dockers:
-  - ids:
-      - wfo
-    image_templates:
-      - "ghcr.io/{{ .Env.GITHUB_REPOSITORY }}:{{ .Tag }}"
+  - image_templates:
+      - "ghcr.io/{{ .Env.GITHUB_REPOSITORY }}:{{ .Version }}"
       - "ghcr.io/{{ .Env.GITHUB_REPOSITORY }}:latest"
     dockerfile: Dockerfile
-    build_flag_templates:
-      - "--platform=linux/amd64"
-      - "--label=org.opencontainers.image.created={{ .Date }}"
-      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
-      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
-      - "--label=org.opencontainers.image.version={{ .Version }}"
     goos: linux
     goarch: amd64
     use: buildx
-    # Ensure proper authentication
+    build_flag_templates:
+      - "--platform=linux/amd64"
     extra_files:
-      - Dockerfile
+      - README.md
+      - LICENSE 
