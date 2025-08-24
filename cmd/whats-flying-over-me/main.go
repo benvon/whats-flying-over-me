@@ -75,6 +75,6 @@ func logHeartbeat(stats *notifier.Stats) {
 		"scrape_count":    statsData["scrape_count"],
 		"scrape_failures": statsData["scrape_failures"],
 		"success_rate":    fmt.Sprintf("%.1f%%", statsData["success_rate"]),
-		"unique_aircraft": statsData["uniqueCount"],
+		"unique_aircraft": statsData["unique_aircraft"],
 	})
 }
