@@ -1,5 +1,15 @@
 version: 2
 project_name: whats-flying-over-me
+before:
+  hooks:
+    - go mod tidy
+
+# Add release configuration
+release:
+  # Use GitHub as the release provider
+  github:
+    owner: "{{ .Env.GITHUB_REPOSITORY_OWNER }}"
+    name: "{{ .Env.GITHUB_REPOSITORY_NAME }}"
 
 builds:
   - id: wfo
@@ -16,13 +26,21 @@ builds:
       - arm64
 
 archives:
-  - builds:
-      - wfo
+  - name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     format: tar.gz
-    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
 
 checksum:
   name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^ci:'
+      - Merge pull request
+      - Merge branch
 
 dockers:
   - ids:
@@ -37,6 +55,7 @@ dockers:
       - "--label=org.opencontainers.image.title={{ .ProjectName }}"
       - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
       - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.source={{ .Env.GITHUB_SERVER_URL }}/{{ .Env.GITHUB_REPOSITORY }}"
     goos: linux
     goarch: amd64
     use: buildx
