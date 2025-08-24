@@ -40,6 +40,5 @@ dockers:
     goos: linux
     goarch: amd64
     use: buildx
-    # Ensure proper authentication
     extra_files:
       - Dockerfile
