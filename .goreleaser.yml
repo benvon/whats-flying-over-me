@@ -29,8 +29,17 @@ dockers:
       - wfo
     image_templates:
       - "ghcr.io/{{ .Env.GITHUB_REPOSITORY }}:{{ .Tag }}"
+      - "ghcr.io/{{ .Env.GITHUB_REPOSITORY }}:latest"
     dockerfile: Dockerfile
     build_flag_templates:
       - "--platform=linux/amd64"
+      - "--label=org.opencontainers.image.created={{ .Date }}"
+      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
     goos: linux
     goarch: amd64
+    use: buildx
+    # Ensure proper authentication
+    extra_files:
+      - Dockerfile
