@@ -23,5 +23,14 @@
   "alert_dedupe": {
     "enabled": true,
     "blockout_min": "15m"
+  },
+  "cataloger": {
+    "enabled": false,
+    "url": "http://localhost:9200",
+    "index": "aircraft",
+    "username": "",
+    "password": "",
+    "timeout": "30s",
+    "max_retries": 3
   }
 }
