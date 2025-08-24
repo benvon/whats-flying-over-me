@@ -26,8 +26,6 @@ clean:
 	rm -f whats-flying-over-me
 	rm -rf dist/
 
-check: fmt vet lint sec test build
-
 # GoReleaser commands
 goreleaser-check:
 	@echo "📋 Checking GoReleaser configuration..."
@@ -36,7 +34,6 @@ goreleaser-check:
 goreleaser-test:
 	@echo "🧪 Testing GoReleaser locally (no Docker)..."
 	@echo "Creating temporary local config..."
-	@cp .goreleaser.yml .goreleaser.yml.backup
 	@echo "version: 2" > .goreleaser.local.yml
 	@echo "project_name: whats-flying-over-me" >> .goreleaser.local.yml
 	@echo "" >> .goreleaser.local.yml
