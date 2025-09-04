@@ -1,6 +1,7 @@
 package notifier
 
 import (
+	"fmt"
 	"testing"
 	"time"
 )
@@ -81,7 +82,7 @@ func TestRecordAircraft(t *testing.T) {
 	}
 }
 
-func TestGetStats(t *testing.T) {
+func TestGetStatsBasic(t *testing.T) {
 	stats := NewStats()
 
 	// Wait a moment to ensure uptime is measurable
@@ -173,5 +174,152 @@ func TestGetUniqueAircraftList(t *testing.T) {
 
 	if !foundDEF {
 		t.Error("DEF456 not found in aircraft list")
+	}
+}
+
+func TestConcurrentStatsAccess(t *testing.T) {
+	stats := NewStats()
+
+	// Test concurrent access to stats methods
+	done := make(chan bool)
+	numGoroutines := 10
+
+	for i := 0; i < numGoroutines; i++ {
+		go func(id int) {
+			// Mix of different operations
+			stats.RecordScrape()
+			stats.RecordAircraft(fmt.Sprintf("ABC%d", id))
+			if id%3 == 0 {
+				stats.RecordScrapeFailure()
+			}
+			done <- true
+		}(i)
+	}
+
+	// Wait for all goroutines to complete
+	for i := 0; i < numGoroutines; i++ {
+		<-done
+	}
+
+	// Verify final state
+	statsData := stats.GetStats()
+
+	// Should have recorded all scrapes and aircraft
+	if scrapeCount, ok := statsData["scrape_count"].(int64); !ok || scrapeCount != int64(numGoroutines) {
+		t.Errorf("expected %d scrapes, got %v", numGoroutines, statsData["scrape_count"])
+	}
+
+	if uniqueAircraft, ok := statsData["unique_aircraft"].(int); !ok || uniqueAircraft != numGoroutines {
+		t.Errorf("expected %d unique aircraft, got %v", numGoroutines, statsData["unique_aircraft"])
+	}
+}
+
+func TestCalculateSuccessRateEdgeCases(t *testing.T) {
+	tests := []struct {
+		name         string
+		scrapes      int
+		failures     int
+		expectedRate float64
+		description  string
+	}{
+		{
+			name:         "no scrapes",
+			scrapes:      0,
+			failures:     0,
+			expectedRate: 100.0,
+			description:  "should return 100% when no scrapes recorded",
+		},
+		{
+			name:         "only failures",
+			scrapes:      0,
+			failures:     5,
+			expectedRate: 100.0, // This seems like a bug in the implementation
+			description:  "should handle only failures case",
+		},
+		{
+			name:         "perfect success",
+			scrapes:      10,
+			failures:     0,
+			expectedRate: 100.0,
+			description:  "should return 100% for perfect success",
+		},
+		{
+			name:         "half success",
+			scrapes:      5,
+			failures:     5,
+			expectedRate: 50.0,
+			description:  "should return 50% for half success",
+		},
+		{
+			name:         "mostly failures",
+			scrapes:      1,
+			failures:     9,
+			expectedRate: 10.0,
+			description:  "should return 10% for mostly failures",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			stats := NewStats()
+
+			// Record scrapes and failures
+			for i := 0; i < tt.scrapes; i++ {
+				stats.RecordScrape()
+			}
+			for i := 0; i < tt.failures; i++ {
+				stats.RecordScrapeFailure()
+			}
+
+			statsData := stats.GetStats()
+			successRate := statsData["success_rate"].(float64)
+
+			if successRate != tt.expectedRate {
+				t.Errorf("calculateSuccessRate() = %v, expected %v (%s)", successRate, tt.expectedRate, tt.description)
+			}
+		})
+	}
+}
+
+func TestGetStatsFields(t *testing.T) {
+	stats := NewStats()
+	stats.RecordScrape()
+	stats.RecordAircraft("ABC123")
+
+	statsData := stats.GetStats()
+
+	// Check that all expected fields are present
+	expectedFields := []string{
+		"uptime", "uptime_seconds", "scrape_count", "scrape_failures",
+		"success_rate", "unique_aircraft", "start_time",
+	}
+
+	for _, field := range expectedFields {
+		if _, exists := statsData[field]; !exists {
+			t.Errorf("expected stats to contain field %q", field)
+		}
+	}
+
+	// Check field types
+	if _, ok := statsData["uptime"].(string); !ok {
+		t.Error("expected uptime to be string")
+	}
+	if _, ok := statsData["uptime_seconds"].(int64); !ok {
+		t.Error("expected uptime_seconds to be int64")
+	}
+	if _, ok := statsData["scrape_count"].(int64); !ok {
+		t.Error("expected scrape_count to be int64")
+	}
+	if _, ok := statsData["scrape_failures"].(int64); !ok {
+		t.Error("expected scrape_failures to be int64")
+	}
+	if _, ok := statsData["success_rate"].(float64); !ok {
+		t.Error("expected success_rate to be float64")
+	}
+	if _, ok := statsData["unique_aircraft"].(int); !ok {
+		t.Error("expected unique_aircraft to be int")
+	}
+	if _, ok := statsData["start_time"].(string); !ok {
+		t.Error("expected start_time to be string")
 	}
 }

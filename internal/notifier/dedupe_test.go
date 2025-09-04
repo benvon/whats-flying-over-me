@@ -1,6 +1,7 @@
 package notifier
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -216,5 +217,119 @@ func TestCleanupOldRecords(t *testing.T) {
 	stats = dedup.GetStats()
 	if stats["active_records"] != 2 { // Should still be 2 for current aircraft
 		t.Errorf("expected 2 active records after cleanup, got %v", stats["active_records"])
+	}
+}
+
+func TestMakeKey(t *testing.T) {
+	dedup := NewDeduplicator(config.AlertDedupeConfig{
+		Enabled:     true,
+		BlockoutMin: 15 * time.Minute,
+	})
+
+	tests := []struct {
+		name        string
+		tailNumber  string
+		transponder string
+		expected    string
+	}{
+		{
+			name:        "both tail and transponder",
+			tailNumber:  "TEST1",
+			transponder: "ABC123",
+			expected:    "TEST1:ABC123",
+		},
+		{
+			name:        "empty tail number",
+			tailNumber:  "",
+			transponder: "ABC123",
+			expected:    ":ABC123",
+		},
+		{
+			name:        "empty transponder",
+			tailNumber:  "TEST1",
+			transponder: "",
+			expected:    "TEST1:",
+		},
+		{
+			name:        "both empty",
+			tailNumber:  "",
+			transponder: "",
+			expected:    ":",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := dedup.makeKey(tt.tailNumber, tt.transponder)
+			if result != tt.expected {
+				t.Errorf("makeKey(%q, %q) = %q, expected %q", tt.tailNumber, tt.transponder, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestGetStats(t *testing.T) {
+	dedup := NewDeduplicator(config.AlertDedupeConfig{
+		Enabled:     true,
+		BlockoutMin: 15 * time.Minute,
+	})
+
+	stats := dedup.GetStats()
+
+	// Check that all expected fields are present
+	expectedFields := []string{"enabled", "blockout_min", "active_records"}
+	for _, field := range expectedFields {
+		if _, exists := stats[field]; !exists {
+			t.Errorf("expected stats to contain field %q", field)
+		}
+	}
+
+	// Check specific values
+	if enabled, ok := stats["enabled"].(bool); !ok || !enabled {
+		t.Error("expected enabled to be true")
+	}
+
+	if blockoutMin, ok := stats["blockout_min"].(string); !ok || blockoutMin != "15m0s" {
+		t.Errorf("expected blockout_min to be '15m0s', got %q", blockoutMin)
+	}
+
+	if activeRecords, ok := stats["active_records"].(int); !ok || activeRecords != 0 {
+		t.Errorf("expected active_records to be 0, got %v", activeRecords)
+	}
+}
+
+func TestConcurrentAccess(t *testing.T) {
+	dedup := NewDeduplicator(config.AlertDedupeConfig{
+		Enabled:     true,
+		BlockoutMin: 15 * time.Minute,
+	})
+
+	// Test concurrent access to ShouldAlert
+	done := make(chan bool)
+	numGoroutines := 10
+
+	for i := 0; i < numGoroutines; i++ {
+		go func(id int) {
+			aircraft := piaware.NearbyAircraft{
+				Aircraft: piaware.Aircraft{
+					Hex:    fmt.Sprintf("ABC%d", id),
+					Flight: fmt.Sprintf("TEST%d", id),
+				},
+			}
+			dedup.ShouldAlert(aircraft)
+			done <- true
+		}(i)
+	}
+
+	// Wait for all goroutines to complete
+	for i := 0; i < numGoroutines; i++ {
+		<-done
+	}
+
+	// Check that all records were created
+	stats := dedup.GetStats()
+	expectedRecords := numGoroutines * 2 // Each aircraft creates 2 records
+	if activeRecords, ok := stats["active_records"].(int); !ok || activeRecords != expectedRecords {
+		t.Errorf("expected %d active records, got %v", expectedRecords, activeRecords)
 	}
 }

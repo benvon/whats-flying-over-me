@@ -173,7 +173,9 @@ func (e *ElasticSearchCataloger) doBulkRequest(ctx context.Context, body []byte)
 	if err != nil {
 		return fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close() // Ignore close error as response body has been read
+	}()
 
 	// Read response body for error details
 	respBody, _ := io.ReadAll(resp.Body)
@@ -207,7 +209,9 @@ func (e *ElasticSearchCataloger) HealthCheck(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("health check failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close() // Ignore close error as we only need status code
+	}()
 
 	if resp.StatusCode >= 400 {
 		return fmt.Errorf("ElasticSearch health check failed with status %d", resp.StatusCode)

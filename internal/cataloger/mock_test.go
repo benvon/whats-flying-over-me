@@ -144,9 +144,15 @@ func TestMockCatalogerReset(t *testing.T) {
 		},
 	}
 
-	mock.CatalogAircraft(ctx, aircraft, 37.6213, -122.3790)
-	mock.HealthCheck(ctx)
-	mock.Close()
+	if err := mock.CatalogAircraft(ctx, aircraft, 37.6213, -122.3790); err != nil {
+		t.Errorf("CatalogAircraft() failed: %v", err)
+	}
+	if err := mock.HealthCheck(ctx); err != nil {
+		t.Errorf("HealthCheck() failed: %v", err)
+	}
+	if err := mock.Close(); err != nil {
+		t.Errorf("Close() failed: %v", err)
+	}
 
 	// Verify operations were recorded
 	if mock.GetCatalogCalls() != 1 || mock.GetHealthCheckCalls() != 1 || mock.GetCloseCalls() != 1 {

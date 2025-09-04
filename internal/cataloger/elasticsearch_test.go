@@ -58,46 +58,163 @@ func TestNewElasticSearchCataloger(t *testing.T) {
 }
 
 func TestElasticSearchCatalogerCatalogAircraft(t *testing.T) {
-	// Test with disabled cataloger
-	config := ElasticSearchConfig{
-		Enabled: false,
-	}
-	cataloger, err := NewElasticSearchCataloger(config)
-	if err != nil {
-		t.Fatalf("Failed to create cataloger: %v", err)
-	}
-
-	aircraft := []piaware.Aircraft{
+	tests := []struct {
+		name     string
+		config   ElasticSearchConfig
+		aircraft []piaware.Aircraft
+		baseLat  float64
+		baseLon  float64
+		wantErr  bool
+	}{
 		{
-			Hex:     "ABC123",
-			Flight:  "TEST123",
-			Lat:     37.6213,
-			Lon:     -122.3790,
-			AltBaro: 5000,
+			name: "disabled cataloger",
+			config: ElasticSearchConfig{
+				Enabled: false,
+			},
+			aircraft: []piaware.Aircraft{
+				{
+					Hex:     "ABC123",
+					Flight:  "TEST123",
+					Lat:     37.6213,
+					Lon:     -122.3790,
+					AltBaro: 5000,
+				},
+			},
+			baseLat: 37.6213,
+			baseLon: -122.3790,
+			wantErr: false,
+		},
+		{
+			name: "empty aircraft list",
+			config: ElasticSearchConfig{
+				Enabled: true,
+				URL:     "http://localhost:9200",
+			},
+			aircraft: []piaware.Aircraft{},
+			baseLat:  37.6213,
+			baseLon:  -122.3790,
+			wantErr:  false, // Empty list should not fail
+		},
+		{
+			name: "nil aircraft list",
+			config: ElasticSearchConfig{
+				Enabled: true,
+				URL:     "http://localhost:9200",
+			},
+			aircraft: nil,
+			baseLat:  37.6213,
+			baseLon:  -122.3790,
+			wantErr:  false, // Nil list should not fail
+		},
+		{
+			name: "aircraft with coordinates",
+			config: ElasticSearchConfig{
+				Enabled: true,
+				URL:     "http://localhost:9200",
+			},
+			aircraft: []piaware.Aircraft{
+				{
+					Hex:     "ABC123",
+					Flight:  "TEST123",
+					Lat:     37.6213,
+					Lon:     -122.3790,
+					AltBaro: 5000,
+				},
+				{
+					Hex:     "DEF456",
+					Flight:  "TEST456",
+					Lat:     0, // No coordinates
+					Lon:     0,
+					AltBaro: 3000,
+				},
+			},
+			baseLat: 37.6213,
+			baseLon: -122.3790,
+			wantErr: true, // Will fail due to no real server
+		},
+		{
+			name: "aircraft without coordinates",
+			config: ElasticSearchConfig{
+				Enabled: true,
+				URL:     "http://localhost:9200",
+			},
+			aircraft: []piaware.Aircraft{
+				{
+					Hex:     "GHI789",
+					Flight:  "TEST789",
+					Lat:     0,
+					Lon:     0,
+					AltBaro: 2000,
+				},
+			},
+			baseLat: 37.6213,
+			baseLon: -122.3790,
+			wantErr: true, // Will fail due to no real server
 		},
 	}
 
-	ctx := context.Background()
-	err = cataloger.CatalogAircraft(ctx, aircraft, 37.6213, -122.3790)
-	if err != nil {
-		t.Errorf("CatalogAircraft() should not fail when disabled: %v", err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cataloger, err := NewElasticSearchCataloger(tt.config)
+			if err != nil {
+				t.Fatalf("Failed to create cataloger: %v", err)
+			}
+
+			ctx := context.Background()
+			err = cataloger.CatalogAircraft(ctx, tt.aircraft, tt.baseLat, tt.baseLon)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("CatalogAircraft() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
 	}
 }
 
 func TestElasticSearchCatalogerHealthCheck(t *testing.T) {
-	// Test with disabled cataloger
-	config := ElasticSearchConfig{
-		Enabled: false,
-	}
-	cataloger, err := NewElasticSearchCataloger(config)
-	if err != nil {
-		t.Fatalf("Failed to create cataloger: %v", err)
+	tests := []struct {
+		name    string
+		config  ElasticSearchConfig
+		wantErr bool
+	}{
+		{
+			name: "disabled cataloger",
+			config: ElasticSearchConfig{
+				Enabled: false,
+			},
+			wantErr: false,
+		},
+		{
+			name: "enabled cataloger with auth",
+			config: ElasticSearchConfig{
+				Enabled:  true,
+				URL:      "http://localhost:9200",
+				Username: "user",
+				Password: "pass",
+			},
+			wantErr: true, // Will fail due to no real server
+		},
+		{
+			name: "enabled cataloger without auth",
+			config: ElasticSearchConfig{
+				Enabled: true,
+				URL:     "http://localhost:9200",
+			},
+			wantErr: true, // Will fail due to no real server
+		},
 	}
 
-	ctx := context.Background()
-	err = cataloger.HealthCheck(ctx)
-	if err != nil {
-		t.Errorf("HealthCheck() should not fail when disabled: %v", err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cataloger, err := NewElasticSearchCataloger(tt.config)
+			if err != nil {
+				t.Fatalf("Failed to create cataloger: %v", err)
+			}
+
+			ctx := context.Background()
+			err = cataloger.HealthCheck(ctx)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("HealthCheck() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
 	}
 }
 
@@ -155,6 +272,102 @@ func TestCalculateDistance(t *testing.T) {
 				if result < tt.expected-1 || result > tt.expected+1 {
 					t.Errorf("calculateDistance() = %v, expected close to %v", result, tt.expected)
 				}
+			}
+		})
+	}
+}
+
+func TestElasticSearchCatalogerSendBulkRequest(t *testing.T) {
+	tests := []struct {
+		name        string
+		config      ElasticSearchConfig
+		body        []byte
+		wantErr     bool
+		description string
+	}{
+		{
+			name: "enabled cataloger with retries",
+			config: ElasticSearchConfig{
+				Enabled:    true,
+				URL:        "http://localhost:9200",
+				MaxRetries: 2,
+			},
+			body:        []byte("test body"),
+			wantErr:     true, // Will fail due to no real server
+			description: "should attempt retries and fail",
+		},
+		{
+			name: "enabled cataloger with no retries",
+			config: ElasticSearchConfig{
+				Enabled:    true,
+				URL:        "http://localhost:9200",
+				MaxRetries: 0,
+			},
+			body:        []byte("test body"),
+			wantErr:     true, // Will fail due to no real server
+			description: "should fail immediately with no retries",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cataloger, err := NewElasticSearchCataloger(tt.config)
+			if err != nil {
+				t.Fatalf("Failed to create cataloger: %v", err)
+			}
+
+			ctx := context.Background()
+			err = cataloger.sendBulkRequest(ctx, tt.body)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("sendBulkRequest() error = %v, wantErr %v (%s)", err, tt.wantErr, tt.description)
+			}
+		})
+	}
+}
+
+func TestElasticSearchCatalogerDoBulkRequest(t *testing.T) {
+	tests := []struct {
+		name        string
+		config      ElasticSearchConfig
+		body        []byte
+		wantErr     bool
+		description string
+	}{
+		{
+			name: "enabled cataloger",
+			config: ElasticSearchConfig{
+				Enabled: true,
+				URL:     "http://localhost:9200",
+			},
+			body:        []byte("test body"),
+			wantErr:     true, // Will fail due to no real server
+			description: "should fail without real server",
+		},
+		{
+			name: "enabled cataloger with auth",
+			config: ElasticSearchConfig{
+				Enabled:  true,
+				URL:      "http://localhost:9200",
+				Username: "user",
+				Password: "pass",
+			},
+			body:        []byte("test body"),
+			wantErr:     true, // Will fail due to no real server
+			description: "should fail without real server even with auth",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cataloger, err := NewElasticSearchCataloger(tt.config)
+			if err != nil {
+				t.Fatalf("Failed to create cataloger: %v", err)
+			}
+
+			ctx := context.Background()
+			err = cataloger.doBulkRequest(ctx, tt.body)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("doBulkRequest() error = %v, wantErr %v (%s)", err, tt.wantErr, tt.description)
 			}
 		})
 	}
