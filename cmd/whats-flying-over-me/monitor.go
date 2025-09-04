@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"time"
 
+	"github.com/example/whats-flying-over-me/internal/cataloger"
 	"github.com/example/whats-flying-over-me/internal/config"
 	"github.com/example/whats-flying-over-me/internal/logger"
 	"github.com/example/whats-flying-over-me/internal/notifier"
@@ -17,16 +19,18 @@ type MonitorService struct {
 	deduplicator *notifier.Deduplicator
 	stats        *notifier.Stats
 	fetcher      AircraftFetcher
+	cataloger    cataloger.Cataloger
 }
 
 // NewMonitorService creates a new monitoring service.
-func NewMonitorService(cfg config.Config, notifier notifier.Notifier, deduplicator *notifier.Deduplicator, stats *notifier.Stats, fetcher AircraftFetcher) *MonitorService {
+func NewMonitorService(cfg config.Config, notifier notifier.Notifier, deduplicator *notifier.Deduplicator, stats *notifier.Stats, fetcher AircraftFetcher, cataloger cataloger.Cataloger) *MonitorService {
 	return &MonitorService{
 		cfg:          cfg,
 		notifier:     notifier,
 		deduplicator: deduplicator,
 		stats:        stats,
 		fetcher:      fetcher,
+		cataloger:    cataloger,
 	}
 }
 
@@ -50,6 +54,14 @@ func (m *MonitorService) check() error {
 	// Record all aircraft seen for statistics
 	for _, a := range aircraft {
 		m.stats.RecordAircraft(a.Hex)
+	}
+
+	// Catalog all aircraft data
+	if err := m.cataloger.CatalogAircraft(context.Background(), aircraft, m.cfg.BaseLat, m.cfg.BaseLon); err != nil {
+		// Log cataloging failure but continue with monitoring
+		logger.Err("failed to catalog aircraft data", map[string]interface{}{
+			"error": err.Error(),
+		})
 	}
 
 	nearby := piaware.FilterAircraft(aircraft, m.cfg.BaseLat, m.cfg.BaseLon, m.cfg.RadiusKm, m.cfg.AltitudeMax)

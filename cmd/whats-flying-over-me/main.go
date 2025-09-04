@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/example/whats-flying-over-me/internal/cataloger"
 	"github.com/example/whats-flying-over-me/internal/config"
 	"github.com/example/whats-flying-over-me/internal/logger"
 	"github.com/example/whats-flying-over-me/internal/notifier"
@@ -25,8 +26,20 @@ func main() {
 	deduplicator := notifier.NewDeduplicator(cfg.AlertDedupe)
 	stats := notifier.NewStats()
 
+	// Initialize cataloger
+	catalogerInstance, err := cataloger.NewCatalogerFromConfig(cfg.Cataloger)
+	if err != nil {
+		logger.Critical("failed to initialize cataloger", map[string]interface{}{"error": err.Error()})
+		return
+	}
+	defer func() {
+		if err := catalogerInstance.Close(); err != nil {
+			logger.Err("failed to close cataloger", map[string]interface{}{"error": err.Error()})
+		}
+	}()
+
 	// Create monitoring service
-	monitorService := NewMonitorService(cfg, n, deduplicator, stats, piaware.Fetch)
+	monitorService := NewMonitorService(cfg, n, deduplicator, stats, piaware.Fetch, catalogerInstance)
 
 	ticker := time.NewTicker(cfg.ScrapeInterval)
 	defer ticker.Stop()
@@ -37,17 +50,18 @@ func main() {
 
 	// Log startup configuration
 	logger.Info("starting aircraft monitoring", map[string]interface{}{
-		"scrape_interval":  cfg.ScrapeInterval.String(),
-		"radius_km":        cfg.RadiusKm,
-		"altitude_max":     cfg.AltitudeMax,
-		"base_lat":         cfg.BaseLat,
-		"base_lon":         cfg.BaseLon,
-		"data_url":         cfg.DataURL,
-		"console_logging":  cfg.Notifier.Console,
-		"webhook_enabled":  cfg.Notifier.Webhook.Enabled,
-		"rabbitmq_enabled": cfg.Notifier.RabbitMQ.Enabled,
-		"dedupe_enabled":   cfg.AlertDedupe.Enabled,
-		"blockout_min":     cfg.AlertDedupe.BlockoutMin.String(),
+		"scrape_interval":   cfg.ScrapeInterval.String(),
+		"radius_km":         cfg.RadiusKm,
+		"altitude_max":      cfg.AltitudeMax,
+		"base_lat":          cfg.BaseLat,
+		"base_lon":          cfg.BaseLon,
+		"data_url":          cfg.DataURL,
+		"console_logging":   cfg.Notifier.Console,
+		"webhook_enabled":   cfg.Notifier.Webhook.Enabled,
+		"rabbitmq_enabled":  cfg.Notifier.RabbitMQ.Enabled,
+		"dedupe_enabled":    cfg.AlertDedupe.Enabled,
+		"blockout_min":      cfg.AlertDedupe.BlockoutMin.String(),
+		"cataloger_enabled": cfg.Cataloger.Enabled,
 	})
 
 	// Start monitoring loop

@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/example/whats-flying-over-me/internal/cataloger"
 	"github.com/example/whats-flying-over-me/internal/config"
 	"github.com/example/whats-flying-over-me/internal/notifier"
 	"github.com/example/whats-flying-over-me/internal/piaware"
@@ -29,7 +30,7 @@ func TestNewMonitorService(t *testing.T) {
 		return []piaware.Aircraft{}, nil
 	}
 
-	service := NewMonitorService(cfg, mockNotifier, deduplicator, stats, mockFetcher)
+	service := NewMonitorService(cfg, mockNotifier, deduplicator, stats, mockFetcher, &cataloger.NoOpCataloger{})
 
 	if service == nil {
 		t.Fatal("expected service to be created")
@@ -60,7 +61,7 @@ func TestMonitorServiceRunMonitoringCycleNoAircraft(t *testing.T) {
 		return []piaware.Aircraft{}, nil
 	}
 
-	service := NewMonitorService(cfg, mockNotifier, deduplicator, stats, mockFetcher)
+	service := NewMonitorService(cfg, mockNotifier, deduplicator, stats, mockFetcher, &cataloger.NoOpCataloger{})
 
 	err := service.RunMonitoringCycle()
 	if err != nil {
@@ -93,7 +94,7 @@ func TestMonitorServiceRunMonitoringCycleWithAircraft(t *testing.T) {
 		return piaware.CreateNearbyAircraft(), nil
 	}
 
-	service := NewMonitorService(cfg, mockNotifier, deduplicator, stats, mockFetcher)
+	service := NewMonitorService(cfg, mockNotifier, deduplicator, stats, mockFetcher, &cataloger.NoOpCataloger{})
 
 	err := service.RunMonitoringCycle()
 	if err != nil {
@@ -137,7 +138,7 @@ func TestMonitorServiceRunMonitoringCycleWithFetcherError(t *testing.T) {
 		return nil, &mockError{message: "network error"}
 	}
 
-	service := NewMonitorService(cfg, mockNotifier, deduplicator, stats, mockFetcher)
+	service := NewMonitorService(cfg, mockNotifier, deduplicator, stats, mockFetcher, &cataloger.NoOpCataloger{})
 
 	err := service.RunMonitoringCycle()
 	if err == nil {
@@ -174,7 +175,7 @@ func TestMonitorServiceGetStats(t *testing.T) {
 		return []piaware.Aircraft{}, nil
 	}
 
-	service := NewMonitorService(cfg, mockNotifier, deduplicator, stats, mockFetcher)
+	service := NewMonitorService(cfg, mockNotifier, deduplicator, stats, mockFetcher, &cataloger.NoOpCataloger{})
 
 	// Record some stats
 	stats.RecordScrape()
@@ -211,7 +212,7 @@ func TestMonitorServiceGetAircraftCounts(t *testing.T) {
 		return []piaware.Aircraft{}, nil
 	}
 
-	service := NewMonitorService(cfg, mockNotifier, deduplicator, stats, mockFetcher)
+	service := NewMonitorService(cfg, mockNotifier, deduplicator, stats, mockFetcher, &cataloger.NoOpCataloger{})
 
 	// Record some aircraft
 	stats.RecordAircraft("ABC123")

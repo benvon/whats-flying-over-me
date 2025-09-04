@@ -1,5 +1,7 @@
 package notifier
 
+import "sync"
+
 // MockHTTPClient is a mock implementation of HTTPClient for testing.
 type MockHTTPClient struct {
 	shouldFail   bool
@@ -7,6 +9,7 @@ type MockHTTPClient struct {
 	requests     []HTTPRequest
 	responseCode int
 	responseBody []byte
+	mutex        sync.RWMutex
 }
 
 // HTTPRequest represents an HTTP request that was made.
@@ -27,20 +30,31 @@ func NewMockHTTPClient() *MockHTTPClient {
 
 // SetShouldFail configures the mock to simulate failures.
 func (m *MockHTTPClient) SetShouldFail(shouldFail bool, message string) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	m.shouldFail = shouldFail
 	m.failMessage = message
 }
 
 // SetResponse sets the response that the mock should return.
 func (m *MockHTTPClient) SetResponse(statusCode int, body []byte) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	m.responseCode = statusCode
 	m.responseBody = body
 }
 
 // Post simulates sending an HTTP POST request.
 func (m *MockHTTPClient) Post(url, contentType string, body []byte) (*HTTPResponse, error) {
-	if m.shouldFail {
-		return nil, &mockError{message: m.failMessage}
+	m.mutex.RLock()
+	shouldFail := m.shouldFail
+	failMessage := m.failMessage
+	responseCode := m.responseCode
+	responseBody := m.responseBody
+	m.mutex.RUnlock()
+
+	if shouldFail {
+		return nil, &mockError{message: failMessage}
 	}
 
 	// Record the request
@@ -49,16 +63,21 @@ func (m *MockHTTPClient) Post(url, contentType string, body []byte) (*HTTPRespon
 		ContentType: contentType,
 		Body:        body,
 	}
+
+	m.mutex.Lock()
 	m.requests = append(m.requests, req)
+	m.mutex.Unlock()
 
 	return &HTTPResponse{
-		StatusCode: m.responseCode,
-		Body:       m.responseBody,
+		StatusCode: responseCode,
+		Body:       responseBody,
 	}, nil
 }
 
 // GetRequests returns all requests that were made.
 func (m *MockHTTPClient) GetRequests() []HTTPRequest {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
 	result := make([]HTTPRequest, len(m.requests))
 	copy(result, m.requests)
 	return result
@@ -66,16 +85,22 @@ func (m *MockHTTPClient) GetRequests() []HTTPRequest {
 
 // GetRequestCount returns the number of requests made.
 func (m *MockHTTPClient) GetRequestCount() int {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
 	return len(m.requests)
 }
 
 // ClearRequests clears the request history.
 func (m *MockHTTPClient) ClearRequests() {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	m.requests = make([]HTTPRequest, 0)
 }
 
 // GetLastRequest returns the most recent request, or nil if none.
 func (m *MockHTTPClient) GetLastRequest() *HTTPRequest {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
 	if len(m.requests) == 0 {
 		return nil
 	}
