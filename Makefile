@@ -1,4 +1,4 @@
-# Makefile for go-table-maker
+# Makefile for whats-flying-over-me
 # This makefile provides targets that mirror the CI pipeline and help with development
 
 .PHONY: help test lint security vulnerability-check build clean setup deps verify mod-tidy-check all ci-local clean-template
@@ -8,7 +8,7 @@
 # =============================================================================
 
 GO_VERSION := 1.24.4
-BINARY_NAME := table-maker
+BINARY_NAME := whats-flying-over-me
 BUILD_DIR := ./bin
 
 # Colors for output
@@ -424,7 +424,7 @@ EOF\
 	rm -f AGENTS.md && \
 	$(call print_info,Updating Makefile...) && \
 	sed -i '/## clean-template:/,/^$$/d' Makefile && \
-	sed -i 's/table-maker/'"$$project_name"'/g' Makefile && \
+	sed -i 's/whats-flying-over-me/'"$$project_name"'/g' Makefile && \
 	$(call print_info,Running go mod tidy...) && \
 	go mod tidy && \
 	$(call print_success,Template cleanup completed!) && \
