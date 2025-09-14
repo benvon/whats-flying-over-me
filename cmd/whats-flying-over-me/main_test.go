@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/example/whats-flying-over-me/internal/notifier"
+	"github.com/benvon/whats-flying-over-me/internal/notifier"
 )
 
 // TestLogHeartbeatStatsAccess ensures that logHeartbeat correctly accesses

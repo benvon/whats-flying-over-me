@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/example/whats-flying-over-me/internal/config"
-	"github.com/example/whats-flying-over-me/internal/piaware"
+	"github.com/benvon/whats-flying-over-me/internal/config"
+	"github.com/benvon/whats-flying-over-me/internal/piaware"
 )
 
 // AlertData represents the data structure for notifications.

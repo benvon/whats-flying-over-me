@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/example/whats-flying-over-me/internal/config"
+	"github.com/benvon/whats-flying-over-me/internal/config"
 )
 
 // Webhook implements Notifier using HTTP webhooks.
