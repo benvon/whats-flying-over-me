@@ -155,17 +155,17 @@ update-tool-versions:
 	@while IFS= read -r line; do \
 		if echo "$$line" | grep -q "#pinned"; then \
 			echo "$$line" >> .tool-versions.tmp; \
-			$(call print_info,Keeping pinned: $$line); \
+			echo "$(YELLOW)Keeping pinned: $$line$(NC)"; \
 		else \
 			tool=$$(echo "$$line" | awk '{print $$1}'); \
 			if [ -n "$$tool" ] && [ "$$tool" != "#" ]; then \
 				latest=$$(asdf latest "$$tool" 2>/dev/null || echo "unknown"); \
-				if [ "$$latest" != "unknown" ]; then \
+				if [ "$$latest" != "unknown" ] && ! echo "$$latest" | grep -q "unable to load\|does not have\|unknown"; then \
 					echo "$$tool $$latest" >> .tool-versions.tmp; \
-					$(call print_success,Updated $$tool to $$latest); \
+					echo "$(GREEN)Updated $$tool to $$latest$(NC)"; \
 				else \
 					echo "$$line" >> .tool-versions.tmp; \
-					$(call print_info,Keeping $$line (no update available)); \
+					echo "$(YELLOW)Keeping $$line (no update available)$(NC)"; \
 				fi; \
 			else \
 				echo "$$line" >> .tool-versions.tmp; \
