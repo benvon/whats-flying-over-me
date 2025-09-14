@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/example/whats-flying-over-me/internal/piaware"
+	"github.com/benvon/whats-flying-over-me/internal/piaware"
 )
 
 func TestNewElasticSearchCataloger(t *testing.T) {

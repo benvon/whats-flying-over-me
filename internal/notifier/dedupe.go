@@ -4,8 +4,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/example/whats-flying-over-me/internal/config"
-	"github.com/example/whats-flying-over-me/internal/piaware"
+	"github.com/benvon/whats-flying-over-me/internal/config"
+	"github.com/benvon/whats-flying-over-me/internal/piaware"
 )
 
 // AlertRecord tracks when an aircraft was last alerted.

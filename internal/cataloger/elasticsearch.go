@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/example/whats-flying-over-me/internal/piaware"
+	"github.com/benvon/whats-flying-over-me/internal/piaware"
 )
 
 // ElasticSearchConfig holds ElasticSearch connection settings

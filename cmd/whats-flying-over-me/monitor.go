@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/example/whats-flying-over-me/internal/cataloger"
-	"github.com/example/whats-flying-over-me/internal/config"
-	"github.com/example/whats-flying-over-me/internal/logger"
-	"github.com/example/whats-flying-over-me/internal/notifier"
-	"github.com/example/whats-flying-over-me/internal/piaware"
+	"github.com/benvon/whats-flying-over-me/internal/cataloger"
+	"github.com/benvon/whats-flying-over-me/internal/config"
+	"github.com/benvon/whats-flying-over-me/internal/logger"
+	"github.com/benvon/whats-flying-over-me/internal/notifier"
+	"github.com/benvon/whats-flying-over-me/internal/piaware"
 )
 
 // MonitorService handles the aircraft monitoring logic.

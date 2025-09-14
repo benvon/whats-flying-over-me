@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/example/whats-flying-over-me/internal/piaware"
+	"github.com/benvon/whats-flying-over-me/internal/piaware"
 )
 
 // MockCataloger is a mock implementation of the Cataloger interface for testing

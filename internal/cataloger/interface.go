@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/example/whats-flying-over-me/internal/piaware"
+	"github.com/benvon/whats-flying-over-me/internal/piaware"
 )
 
 // AircraftRecord represents a cataloged aircraft record

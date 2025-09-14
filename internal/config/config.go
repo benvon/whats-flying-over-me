@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/example/whats-flying-over-me/internal/cataloger"
+	"github.com/benvon/whats-flying-over-me/internal/cataloger"
 )
 
 // Config holds the application configuration.
@@ -182,7 +182,7 @@ const (
 	envCatalogerURL        = "WFO_CATALOGER_URL"
 	envCatalogerIndex      = "WFO_CATALOGER_INDEX"
 	envCatalogerUsername   = "WFO_CATALOGER_USERNAME"
-	envCatalogerPassword   = "WFO_CATALOGER_PASSWORD"
+	envCatalogerPassword   = "WFO_CATALOGER_PASSWORD" // #nosec G101 -- this is a test password
 	envCatalogerTimeout    = "WFO_CATALOGER_TIMEOUT"
 	envCatalogerMaxRetries = "WFO_CATALOGER_MAX_RETRIES"
 )
