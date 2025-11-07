@@ -353,82 +353,76 @@ clean-template:
 	@echo "  - Remove AGENTS.md"
 	@echo "  - Remove this target from Makefile"
 	@echo ""
-	@read -p "Enter your new module path (e.g., github.com/username/project-name): " module_path && \
-	read -p "Enter your project name: " project_name && \
-	$(call print_info,Updating module path to $$module_path...) && \
+	@echo -n "Enter your new module path (e.g., github.com/username/project-name): " && read module_path && \
+	echo -n "Enter your project name: " && read project_name && \
+	echo "$(YELLOW)Updating module path to $$module_path...$(NC)" && \
 	go mod edit -module $$module_path && \
-	$(call print_info,Creating minimal main.go...) && \
-	cat > main.go << 'EOF' && \
-package main\
-\
-import (\
-	"fmt"\
-	"log"\
-)\
-\
-func main() {\
-	fmt.Println("Hello from $$project_name!")\
-	log.Println("Application started successfully")\
-}\
-EOF\
-	$(call print_info,Creating minimal main_test.go...) && \
-	cat > main_test.go << 'EOF' && \
-package main\
-\
-import "testing"\
-\
-func TestMain(t *testing.T) {\
-	// Add your tests here\
-	t.Log("Test suite ready")\
-}\
-EOF\
-	$(call print_info,Updating README.md...) && \
-	cat > README.md << 'EOF' && \
-# $$project_name\
-\
-A Go application built with AI assistance.\
-\
-## Getting Started\
-\
-```bash\
-# Install dependencies\
-go mod tidy\
-\
-# Run tests\
-make test\
-\
-# Build the application\
-make build\
-\
-# Run the application\
-go run main.go\
-```\
-\
-## Development\
-\
-This project includes a comprehensive development setup:\
-\
-- CI/CD with GitHub Actions\
-- Code quality checks with golangci-lint\
-- Security scanning with gosec and govulncheck\
-- Cross-platform builds with GoReleaser\
-- Automated dependency management\
-\
-Use `make help` to see all available commands.\
-\
-## Contributing\
-\
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.\
-EOF\
-	$(call print_info,Removing template-specific files...) && \
+	echo "$(YELLOW)Creating minimal main.go...$(NC)" && \
+	echo 'package main' > main.go && \
+	echo '' >> main.go && \
+	echo 'import (' >> main.go && \
+	echo '	"fmt"' >> main.go && \
+	echo '	"log"' >> main.go && \
+	echo ')' >> main.go && \
+	echo '' >> main.go && \
+	echo 'func main() {' >> main.go && \
+	echo '	fmt.Println("Hello from '"$$project_name"'!")' >> main.go && \
+	echo '	log.Println("Application started successfully")' >> main.go && \
+	echo '}' >> main.go && \
+	echo "$(YELLOW)Creating minimal main_test.go...$(NC)" && \
+	echo 'package main' > main_test.go && \
+	echo '' >> main_test.go && \
+	echo 'import "testing"' >> main_test.go && \
+	echo '' >> main_test.go && \
+	echo 'func TestMain(t *testing.T) {' >> main_test.go && \
+	echo '	// Add your tests here' >> main_test.go && \
+	echo '	t.Log("Test suite ready")' >> main_test.go && \
+	echo '}' >> main_test.go && \
+	echo "$(YELLOW)Updating README.md...$(NC)" && \
+	echo '# '"$$project_name" > README.md && \
+	echo '' >> README.md && \
+	echo 'A Go application built with AI assistance.' >> README.md && \
+	echo '' >> README.md && \
+	echo '## Getting Started' >> README.md && \
+	echo '' >> README.md && \
+	echo '```bash' >> README.md && \
+	echo '# Install dependencies' >> README.md && \
+	echo 'go mod tidy' >> README.md && \
+	echo '' >> README.md && \
+	echo '# Run tests' >> README.md && \
+	echo 'make test' >> README.md && \
+	echo '' >> README.md && \
+	echo '# Build the application' >> README.md && \
+	echo 'make build' >> README.md && \
+	echo '' >> README.md && \
+	echo '# Run the application' >> README.md && \
+	echo 'go run main.go' >> README.md && \
+	echo '```' >> README.md && \
+	echo '' >> README.md && \
+	echo '## Development' >> README.md && \
+	echo '' >> README.md && \
+	echo 'This project includes a comprehensive development setup:' >> README.md && \
+	echo '' >> README.md && \
+	echo '- CI/CD with GitHub Actions' >> README.md && \
+	echo '- Code quality checks with golangci-lint' >> README.md && \
+	echo '- Security scanning with gosec and govulncheck' >> README.md && \
+	echo '- Cross-platform builds with GoReleaser' >> README.md && \
+	echo '- Automated dependency management' >> README.md && \
+	echo '' >> README.md && \
+	echo 'Use `make help` to see all available commands.' >> README.md && \
+	echo '' >> README.md && \
+	echo '## Contributing' >> README.md && \
+	echo '' >> README.md && \
+	echo 'Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.' >> README.md && \
+	echo "$(YELLOW)Removing template-specific files...$(NC)" && \
 	rm -f AGENTS.md && \
-	$(call print_info,Updating Makefile...) && \
-	sed -i '/## clean-template:/,/^$$/d' Makefile && \
-	sed -i 's/whats-flying-over-me/'"$$project_name"'/g' Makefile && \
-	$(call print_info,Running go mod tidy...) && \
+	echo "$(YELLOW)Updating Makefile...$(NC)" && \
+	sed -i '' '/## clean-template:/,/^$$/d' Makefile && \
+	sed -i '' 's/whats-flying-over-me/'"$$project_name"'/g' Makefile && \
+	echo "$(YELLOW)Running go mod tidy...$(NC)" && \
 	go mod tidy && \
-	$(call print_success,Template cleanup completed!) && \
-	$(call print_info,Next steps:) && \
+	echo "$(GREEN)Template cleanup completed!$(NC)" && \
+	echo "$(YELLOW)Next steps:$(NC)" && \
 	echo "  1. Review and commit the changes" && \
 	echo "  2. Update .goreleaser.yml with your project details" && \
 	echo "  3. Update CONTRIBUTING.md and other documentation" && \
