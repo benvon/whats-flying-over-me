@@ -10,6 +10,7 @@
 GO_VERSION := 1.24.4
 BINARY_NAME := whats-flying-over-me
 BUILD_DIR := ./bin
+GOVULNCHECK_VERSION ?= 1.1.4
 
 # Colors for output
 GREEN := \033[32m
@@ -140,7 +141,11 @@ verify-tools:
 	$(call print_info,Verifying development tools...)
 	@echo "Go version: $$(go version)"
 	@echo "golangci-lint version: $$(golangci-lint version)"
-	@echo "govulncheck version: $$(govulncheck -version 2>/dev/null || echo 'govulncheck not available')"
+	@if command -v govulncheck >/dev/null 2>&1 && govulncheck -version >/dev/null 2>&1; then \
+		echo "govulncheck version: $$(govulncheck -version)"; \
+	else \
+		echo "govulncheck version: fallback via go run v$(GOVULNCHECK_VERSION)"; \
+	fi
 	@echo "gosec version: $$(gosec -version 2>/dev/null || echo 'gosec not available')"
 	$(call print_success,Tool verification completed!)
 
@@ -246,7 +251,7 @@ security:
 ## vulnerability-check: Run govulncheck
 vulnerability-check:
 	$(call print_info,Checking for vulnerabilities...)
-	govulncheck ./...
+	@./scripts/ensure_govulncheck.sh $(GOVULNCHECK_VERSION) ./...
 	$(call print_success,Vulnerability check completed!)
 
 ## mod-tidy-check: Check if go mod tidy is needed
